@@ -20,6 +20,10 @@ def send_to_discord(embed):
     except requests.RequestException as e:
         print(f"Failed to send to Discord: {e}")
 
+@app.route("/test")
+def test():
+    return "Server is running!"
+
 @app.route("/")
 def index():
     try:
@@ -151,4 +155,15 @@ def download_locustfile():
         script_base64 = data.get("script")
         script_bytes = base64.b64decode(script_base64)
         return send_file(
-            io
+            io.BytesIO(script_bytes),
+            as_attachment=True,
+            download_name="locustfile.py",
+            mimetype="text/plain"
+        )
+    except Exception as e:
+        return jsonify({"error": f"Download error: {str(e)}"}), 500
+
+# Vercel requires this to work with WSGI
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)
