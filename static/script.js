@@ -26,8 +26,34 @@ document.getElementById("testForm").addEventListener("submit", async (e) => {
         const data = await response.json();
 
         if (response.ok) {
+            // Display instructions
             resultDiv.textContent = data.message;
             resultDiv.classList.remove("hidden");
+
+            // Create a download link
+            const downloadLink = document.createElement("a");
+            downloadLink.textContent = "Download locustfile.py";
+            downloadLink.href = "#";
+            downloadLink.style.color = "#3498db";
+            downloadLink.style.textDecoration = "underline";
+            downloadLink.addEventListener("click", async (e) => {
+                e.preventDefault();
+                const downloadResponse = await fetch("/download-locustfile", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ script: data.download }),
+                });
+                const blob = await downloadResponse.blob();
+                const url = window.URL.createObjectURL(blob);
+                const tempLink = document.createElement("a");
+                tempLink.href = url;
+                tempLink.download = "locustfile.py";
+                tempLink.click();
+                window.URL.revokeObjectURL(url);
+            });
+
+            resultDiv.appendChild(document.createElement("br"));
+            resultDiv.appendChild(downloadLink);
         } else {
             errorDiv.textContent = data.error;
             errorDiv.classList.remove("hidden");
