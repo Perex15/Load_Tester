@@ -11,7 +11,7 @@ app.template_folder = "templates"
 app.static_folder = "static"
 
 # Replace with your actual Discord webhook URL
-WEBHOOK_URL = "your_discord_webhook_url"
+WEBHOOK_URL = "https://discord.com/api/webhooks/1360559695001292922/gi0RKvRxSvLv7O6fMbu5iWoLwIML6Gj06VZ4EcIQlygt09-TTJw6h6qTgw7HJZaUd6eC"
 
 def send_to_discord(embed):
     """Send an embed message to Discord."""
