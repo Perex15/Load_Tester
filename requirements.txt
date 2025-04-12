@@ -1,1 +1,1 @@
-locust flask
+Flask==2.3.3
