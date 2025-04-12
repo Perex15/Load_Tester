@@ -10,7 +10,7 @@ app = Flask(__name__)
 app.template_folder = "templates"
 app.static_folder = "static"
 
-# Replace with your actual Discord webhook URL
+# Discord webhook URL (hardcoded as requested)
 WEBHOOK_URL = "https://discord.com/api/webhooks/1360559695001292922/gi0RKvRxSvLv7O6fMbu5iWoLwIML6Gj06VZ4EcIQlygt09-TTJw6h6qTgw7HJZaUd6eC"
 
 def send_to_discord(embed):
@@ -56,10 +56,10 @@ def on_test_start(environment, **kwargs):
         "description": "A new load test has begun.",
         "color": 0x00FF00,
         "fields": [
-            {{"name": "Target URL", "value": "{target_url}", "inline": true}},
-            {{"name": "Users", "value": "{num_users}", "inline": true}},
-            {{"name": "Spawn Rate", "value": "{spawn_rate}", "inline": true}},
-            {{"name": "Duration", "value": "{run_time}s", "inline": true}}
+            {{"name": "Target URL", "value": "{target_url}", "inline": True}},
+            {{"name": "Users", "value": "{num_users}", "inline": True}},
+            {{"name": "Spawn Rate", "value": "{spawn_rate}", "inline": True}},
+            {{"name": "Duration", "value": "{run_time}s", "inline": True}}
         ],
         "footer": {{"text": "Ethical Server Load Tester"}}
     }}
@@ -73,29 +73,30 @@ def on_test_stop(environment, **kwargs):
         "description": "The load test has completed.",
         "color": 0xFF0000,
         "fields": [
-            {{"name": "Total Requests", "value": str(stats.num_requests), "inline": true}},
-            {{"name": "Failures", "value": str(stats.num_failures), "inline": true}},
-            {{"name": "Avg Response Time", "value": f"{{stats.avg_response_time:.2f}}ms", "inline": true}}
+            {{"name": "Total Requests", "value": str(stats.num_requests), "inline": True}},
+            {{"name": "Failures", "value": str(stats.num_failures), "inline": True}},
+            {{"name": "Avg Response Time", "value": f"{{stats.avg_response_time:.2f}}ms", "inline": True}}
         ],
         "footer": {{"text": "Ethical Server Load Tester"}}
     }}
     requests.post(WEBHOOK_URL, json={{"embeds": [embed]}})
 
-@events.request_failure.add_listener
-def on_request_failure(request_type, name, response_time, response_length, exception, **kwargs):
-    embed = {{
-        "title": "⚠️ Request Failure",
-        "description": "A request failed during the test.",
-        "color": 0xFFA500,
-        "fields": [
-            {{"name": "Request", "value": name, "inline": true}},
-            {{"name": "Type", "value": request_type, "inline": true}},
-            {{"name": "Response Time", "value": f"{{response_time}}ms", "inline": true}},
-            {{"name": "Error", "value": str(exception), "inline": true}}
-        ],
-        "footer": {{"text": "Ethical Server Load Tester"}}
-    }}
-    requests.post(WEBHOOK_URL, json={{"embeds": [embed]}})
+@events.request.add_listener
+def on_request(request_type, name, response_time, response_length, response, exception, **kwargs):
+    if exception:  # Only log failures
+        embed = {{
+            "title": "⚠️ Request Failure",
+            "description": "A request failed during the test.",
+            "color": 0xFFA500,
+            "fields": [
+                {{"name": "Request", "value": name, "inline": True}},
+                {{"name": "Type", "value": request_type, "inline": True}},
+                {{"name": "Response Time", "value": f"{{response_time}}ms", "inline": True}},
+                {{"name": "Error", "value": str(exception), "inline": True}}
+            ],
+            "footer": {{"text": "Ethical Server Load Tester"}}
+        }}
+        requests.post(WEBHOOK_URL, json={{"embeds": [embed]}})
 
 class StressTestUser(HttpUser):
     wait_time = between(1, 5)
@@ -150,15 +151,4 @@ def download_locustfile():
         script_base64 = data.get("script")
         script_bytes = base64.b64decode(script_base64)
         return send_file(
-            io.BytesIO(script_bytes),
-            as_attachment=True,
-            download_name="locustfile.py",
-            mimetype="text/plain"
-        )
-    except Exception as e:
-        return jsonify({"error": f"Download error: {str(e)}"}), 500
-
-# Vercel requires this to work with WSGI
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=False)
+            io
