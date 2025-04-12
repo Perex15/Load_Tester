@@ -1,50 +1,40 @@
-from flask import Flask, request, render_template
-from locust import HttpUser, task, between, Locust
-import os
+from flask import Flask, request, jsonify, render_template
 
 app = Flask(__name__)
 
-# Locust script to simulate traffic
-class StressTestUser(HttpUser):
-    wait_time = between(1, 5)  # Simulate realistic user delays
-    @task
-    def load_page(self):
-        self.client.get("/")  # Adjust endpoint based on your server
-
-# Save Locust config dynamically
-def generate_locust_file(target_url):
-    with open("locustfile.py", "w") as f:
-        f.write(f"""
-from locust import HttpUser, task, between
-
-class StressTestUser(HttpUser):
-    wait_time = between(1, 5)
-    host = "{target_url}"
-    @task
-    def load_page(self):
-        self.client.get("/")
-""")
-
-@app.route("/", methods=["GET", "POST"])
+@app.route("/")
 def index():
-    if request.method == "POST":
-        target_url = request.form.get("target_url")
-        num_users = int(request.form.get("num_users", 10))
-        spawn_rate = int(request.form.get("spawn_rate", 1))
-        run_time = int(request.form.get("run_time", 60))
-
-        if not target_url.startswith("http"):
-            target_url = "http://" + target_url
-
-        # Generate Locust script
-        generate_locust_file(target_url)
-
-        # Run Locust in headless mode
-        os.system(f"locust -f locustfile.py --headless -u {num_users} -r {spawn_rate} --run-time {run_time}s --host {target_url}")
-
-        return "Test completed! Check server logs for results."
-    
     return render_template("index.html")
+
+@app.route("/api/run-test", methods=["POST"])
+def run_test():
+    data = request.get_json()
+    target_url = data.get("targetUrl")
+    num_users = data.get("numUsers")
+    spawn_rate = data.get("spawnRate")
+    run_time = data.get("runTime")
+
+    if not all([target_url, num_users, spawn_rate, run_time]):
+        return jsonify({"error": "All fields are required"}), 400
+
+    if not target_url.startswith(("http://", "https://")):
+        target_url = "http://" + target_url
+
+    message = (
+        f"To test {target_url}, run this command on a server with Locust installed:\n\n"
+        f"locust -f locustfile.py --host={target_url} --users={num_users} "
+        f"--spawn-rate={spawn_rate} --run-time={run_time}s --headless\n\n"
+        f"Use this Locust script (locustfile.py):\n"
+        f"from locust import HttpUser, task, between\n\n"
+        f"class StressTestUser(HttpUser):\n"
+        f"    wait_time = between(1, 5)\n"
+        f"    @task\n"
+        f"    def load_page(self):\n"
+        f"        self.client.get('/')\n\n"
+        f"Ensure you have permission to test the target server."
+    )
+
+    return jsonify({"message": message})
 
 if __name__ == "__main__":
     app.run(debug=True)
