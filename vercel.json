@@ -20,6 +20,10 @@
             "dest": "/app.py"
         },
         {
+            "src": "/download-locustfile",
+            "dest": "/app.py"
+        },
+        {
             "src": "/(.*)",
             "dest": "/app.py"
         }
